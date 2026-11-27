@@ -5,7 +5,7 @@ Tags: twenty-seventeen, twentyseventeen, change, customize, modify
 Requires at least: 4.6
 Tested up to: 7.0
 Requires PHP: 5.6
-Stable tag: 2.5.7
+Stable tag: 2.5.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -179,6 +179,9 @@ Changing fonts in a WordPress theme is not a customisation that is limited to Tw
 7. Footer Options
 
 == Changelog ==
+
+= 2.5.8 =
+* Preparing for WordPress v7.2
 
 = 2.5.7 =
 * Fix a minor issue highlighted by "Plugin Check" code review and preparing for WordPress v7.0
@@ -726,5 +729,5 @@ Changing fonts in a WordPress theme is not a customisation that is limited to Tw
 
 == Upgrade Notice ==
 
-= 2.5.7 =
-* Fix a minor issue highlighted by "Plugin Check" code review and preparing for WordPress v7.0
+= 2.5.8 =
+* Preparing for WordPress v7.2

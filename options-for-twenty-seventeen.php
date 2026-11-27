@@ -1,7 +1,7 @@
 <?php
 /*
  * Plugin Name: Options for Twenty Seventeen
- * Version: 2.5.7
+ * Version: 2.5.8
  * Plugin URI: https://webd.uk/product/options-for-twenty-seventeen-upgrade/
  * Description: Adds powerful customizer options to modify all aspects of the default WordPress theme Twenty Seventeen
  * Author: Webd Ltd
@@ -19,7 +19,7 @@ if (!class_exists('options_for_twenty_seventeen_class')) {
 
 	class options_for_twenty_seventeen_class {
 
-        const VERSION = '2.5.7';
+        const VERSION = '2.5.8';
 
 		function __construct() {
 
