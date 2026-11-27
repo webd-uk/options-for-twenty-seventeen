@@ -1,15 +1,11 @@
 <?php
 /*
- * Version: 1.4.5
+ * Version: 1.4.8
  */
-
-
 
 if (!defined('ABSPATH')) {
     exit('This isn\'t the page you\'re looking for. Move along, move along.');
 }
-
-
 
 if (!class_exists('oftsCommon')) {
 
@@ -21,10 +17,14 @@ if (!class_exists('oftsCommon')) {
         public static $plugin_premium_class = 'options_for_twenty_seventeen_premium_class';
         public static $plugin_trial = true;
         public static $plugin_upgrade = true;
+        public static $plugin_premium_name = false;
+        public static $plugin_product_slug = 'options-for-twenty-seventeen-upgrade';
+        public static $plugin_premium_plugin = 'options-for-twenty-seventeen-premium/options-for-twenty-seventeen-premium.php';
+        public static $plugin_upgrade_products = array();
 
 		public static function plugin_version() {
 
-            return options_for_twenty_seventeen_class::$version;
+            return options_for_twenty_seventeen_class::VERSION;
 
         }
 
@@ -40,6 +40,12 @@ if (!class_exists('oftsCommon')) {
 
         }
 
+        public static function plugin_premium_name() {
+
+            return self::$plugin_premium_name ? self::$plugin_premium_name : self::$plugin_name . ' Premium';
+
+        }
+
         public static function plugin_prefix() {
 
             return self::$plugin_prefix;
@@ -48,7 +54,7 @@ if (!class_exists('oftsCommon')) {
 
         public static function plugin_text_domain() {
 
-            return 'options-for-twenty-seventeen';
+            return self::$plugin_text_domain;
 
         }
 
@@ -64,13 +70,118 @@ if (!class_exists('oftsCommon')) {
 
         }
 
-        public static function support_url() {
+        public static function upgrade_product($product = false) {
 
-            return 'https://wordpress.org/support/plugin/' . 'options-for-twenty-seventeen' . '/';
+            if (
+                is_string($product) &&
+                '' !== $product &&
+                isset(self::$plugin_upgrade_products[$product]) &&
+                is_array(self::$plugin_upgrade_products[$product])
+            ) {
+
+                return array_merge(
+                    array(
+                        'name' => self::$plugin_name,
+                        'prefix' => self::$plugin_prefix,
+                        'text_domain' => self::$plugin_text_domain,
+                        'premium_class' => self::$plugin_premium_class,
+                        'trial' => self::$plugin_trial,
+                        'upgrade' => self::$plugin_upgrade,
+                        'premium_name' => self::plugin_premium_name(),
+                        'product_slug' => self::$plugin_product_slug ? self::$plugin_product_slug : self::$plugin_text_domain . '-upgrade',
+                        'premium_plugin' => self::$plugin_premium_plugin ? self::$plugin_premium_plugin : self::$plugin_text_domain . '-premium/' . self::$plugin_prefix . '-premium.php',
+                    ),
+                    self::$plugin_upgrade_products[$product]
+                );
+
+            }
+
+            return array(
+                'name' => self::$plugin_name,
+                'prefix' => self::$plugin_prefix,
+                'text_domain' => self::$plugin_text_domain,
+                'premium_class' => self::$plugin_premium_class,
+                'trial' => self::$plugin_trial,
+                'upgrade' => self::$plugin_upgrade,
+                'premium_name' => self::plugin_premium_name(),
+                'product_slug' => self::$plugin_product_slug ? self::$plugin_product_slug : self::$plugin_text_domain . '-upgrade',
+                'premium_plugin' => self::$plugin_premium_plugin ? self::$plugin_premium_plugin : self::$plugin_text_domain . '-premium/' . self::$plugin_prefix . '-premium.php',
+            );
 
         }
 
-        public static function control_upgrade_text() {
+        public static function with_upgrade_product($product, $callback, $args = array()) {
+
+            if (!$product) {
+
+                return call_user_func_array($callback, $args);
+
+            }
+
+            $upgrade_product = self::upgrade_product($product);
+            $original = array(
+                'plugin_name' => self::$plugin_name,
+                'plugin_prefix' => self::$plugin_prefix,
+                'plugin_text_domain' => self::$plugin_text_domain,
+                'plugin_premium_class' => self::$plugin_premium_class,
+                'plugin_trial' => self::$plugin_trial,
+                'plugin_upgrade' => self::$plugin_upgrade,
+                'plugin_premium_name' => self::$plugin_premium_name,
+                'plugin_product_slug' => self::$plugin_product_slug,
+                'plugin_premium_plugin' => self::$plugin_premium_plugin,
+            );
+
+            self::$plugin_name = $upgrade_product['name'];
+            self::$plugin_prefix = $upgrade_product['prefix'];
+            self::$plugin_text_domain = $upgrade_product['text_domain'];
+            self::$plugin_premium_class = $upgrade_product['premium_class'];
+            self::$plugin_trial = $upgrade_product['trial'];
+            self::$plugin_upgrade = $upgrade_product['upgrade'];
+            self::$plugin_premium_name = $upgrade_product['premium_name'];
+            self::$plugin_product_slug = $upgrade_product['product_slug'];
+            self::$plugin_premium_plugin = $upgrade_product['premium_plugin'];
+
+            try {
+                return call_user_func_array($callback, $args);
+            } finally {
+                self::$plugin_name = $original['plugin_name'];
+                self::$plugin_prefix = $original['plugin_prefix'];
+                self::$plugin_text_domain = $original['plugin_text_domain'];
+                self::$plugin_premium_class = $original['plugin_premium_class'];
+                self::$plugin_trial = $original['plugin_trial'];
+                self::$plugin_upgrade = $original['plugin_upgrade'];
+                self::$plugin_premium_name = $original['plugin_premium_name'];
+                self::$plugin_product_slug = $original['plugin_product_slug'];
+                self::$plugin_premium_plugin = $original['plugin_premium_plugin'];
+            }
+
+        }
+
+        public static function support_url() {
+
+            return 'https://wordpress.org/support/plugin/' . self::$plugin_text_domain . '/';
+
+        }
+
+        public static function services_url() {
+
+            return add_query_arg(
+                array(
+                    'utm_campaign' => 'plugin-row-meta',
+                    'utm_term' => self::$plugin_text_domain,
+                ),
+                'https://webd.uk/services/'
+            );
+
+        }
+
+        public static function control_upgrade_text($product = false) {
+
+            if ($product) {
+
+                return self::with_upgrade_product($product, array(__CLASS__, 'control_upgrade_text'));
+
+            }
 
 /* translators: name of the plugin */
             $upgrade_text = '<a href="' . esc_url(self::upgrade_link()) . '" title="' . esc_attr(sprintf(__('Upgrade now to %s Premium', 'options-for-twenty-seventeen'), self::$plugin_name)) . '">' . sprintf(__('Upgrade now to %s Premium', 'options-for-twenty-seventeen'), self::$plugin_name) . '</a>';
@@ -90,7 +201,13 @@ if (!class_exists('oftsCommon')) {
 
         }
 
-        public static function control_section_description() {
+        public static function control_section_description($product = false) {
+
+            if ($product) {
+
+                return self::with_upgrade_product($product, array(__CLASS__, 'control_section_description'));
+
+            }
 
 /* translators: link to the plugin's support forum */
             $default_description = sprintf(wp_kses(__('If you have any requests for new features, please <a href="%s" title="Support Forum">let us know in the support forum</a>.', 'options-for-twenty-seventeen'), array('a' => array('href' => array(), 'title' => array()))), esc_url(self::support_url()));
@@ -128,10 +245,7 @@ if (!class_exists('oftsCommon')) {
                 $section_description .= ' ' . sprintf(
                     wp_kses(
 /* translators: link to plugin install page */
-                        __(
-                            '<strong>To reset this section of options to default settings</strong> without affecting other sections in the customizer, install <a href="%s" title="Reset Customizer">Reset Customizer</a>.',
-                            'options-for-twenty-seventeen'
-                        ),
+                        __('<strong>To reset this section of options to default settings</strong> without affecting other sections in the customizer, install <a href="%s" title="Reset Customizer">Reset Customizer</a>.','options-for-twenty-seventeen'),
                         array('strong' => array(), 'a' => array('href' => array(), 'title' => array()))
                     ),
                     esc_url(
@@ -152,7 +266,13 @@ if (!class_exists('oftsCommon')) {
 
         }
 
-        public static function control_setting_upgrade_nag() {
+        public static function control_setting_upgrade_nag($product = false) {
+
+            if ($product) {
+
+                return self::with_upgrade_product($product, array(__CLASS__, 'control_setting_upgrade_nag'));
+
+            }
 
             $upgrade_nag = self::control_upgrade_text() . __(' to use this option.', 'options-for-twenty-seventeen');
 
@@ -258,17 +378,25 @@ if (!class_exists('oftsCommon')) {
 
         }
 
-        public static function upgrade_link() {
+        public static function upgrade_link($product = false) {
+
+            if ($product) {
+
+                return self::with_upgrade_product($product, array(__CLASS__, 'upgrade_link'));
+
+            }
+
+            $upgrade_product = self::upgrade_product();
 
             if (self::$plugin_premium_class) {
 
                 if (isset($_SERVER['HTTP_HOST'])) {
 
-                    return add_query_arg('url', (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . filter_var(wp_unslash($_SERVER['HTTP_HOST'], FILTER_SANITIZE_URL)), 'https://webd.uk/product/' . 'options-for-twenty-seventeen' . '-upgrade/');
+                    return add_query_arg('url', (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . filter_var(wp_unslash($_SERVER['HTTP_HOST']), FILTER_SANITIZE_URL), 'https://webd.uk/product/' . $upgrade_product['product_slug'] . '/');
 
                 } else {
 
-                    return 'https://webd.uk/product/' . 'options-for-twenty-seventeen' . '-upgrade/';
+                    return 'https://webd.uk/product/' . $upgrade_product['product_slug'] . '/';
 
                 }
 
@@ -280,13 +408,27 @@ if (!class_exists('oftsCommon')) {
 
         }
 
-        public static function premium_link() {
+        public static function premium_link($product = false) {
+
+            if ($product) {
+
+                return self::with_upgrade_product($product, array(__CLASS__, 'premium_link'));
+
+            }
 
             return 'https://webd.uk/downloads/';
 
         }
 
-        public static function plugin_action_links($settings_link, $premium = false) {
+        public static function plugin_action_links($settings_link = false, $premium = false, $product = false) {
+
+            if ($product) {
+
+                return self::with_upgrade_product($product, array(__CLASS__, 'plugin_action_links'), array($settings_link, $premium));
+
+            }
+
+            $upgrade_product = self::upgrade_product();
 
             if (!$premium) {
 
@@ -296,7 +438,11 @@ if (!class_exists('oftsCommon')) {
 
             $settings_links = array();
 
-			$settings_links[] = '<a href="' . esc_url($settings_link) . '" title="' . esc_attr(__('Settings', 'options-for-twenty-seventeen')) . '">' . __('Settings', 'options-for-twenty-seventeen') . '</a>';
+            if ($settings_link) {
+
+                $settings_links[] = '<a href="' . esc_url($settings_link) . '" title="' . esc_attr(__('Settings', 'options-for-twenty-seventeen')) . '">' . __('Settings', 'options-for-twenty-seventeen') . '</a>';
+
+            }
 
             if (!get_option(self::$plugin_prefix . '_purchased')) {
 
@@ -323,9 +469,9 @@ if (!class_exists('oftsCommon')) {
 
                 if ($premium) {
 
-                    $settings_links[] = '<a href="' . wp_nonce_url('?activate-' . self::$plugin_prefix . '=true', self::$plugin_prefix . '_activate') . '" id="' . self::$plugin_prefix . '_activate_upgrade" title="' . esc_attr(__('Activate Purchase', 'options-for-twenty-seventeen')) . '" onclick="jQuery(this).append(&#39; <img src=&#34;/wp-admin/images/loading.gif&#34; style=&#34;float: none; width: auto; height: auto;&#34; />&#39;); setTimeout(function(){document.getElementById(\'' . self::$plugin_prefix . '_activate_upgrade\').removeAttribute(\'href\');},1); return true;">' . __('Activate Purchase', 'options-for-twenty-seventeen') . '</a>';
+                    $settings_links[] = '<a href="' . wp_nonce_url('?activate-' . self::$plugin_prefix . '=true', self::$plugin_prefix . '_activate') . '" id="' . self::$plugin_prefix . '_activate_upgrade" title="' . esc_attr(__('Activate Purchase', 'options-for-twenty-seventeen')) . '" onclick="this.insertAdjacentHTML(\'beforeend\', &#39; <img src=&#34;/wp-admin/images/loading.gif&#34; style=&#34;float: none; width: auto; height: auto;&#34; alt=&#34;&#34; />&#39;); setTimeout(function(){document.getElementById(\'' . self::$plugin_prefix . '_activate_upgrade\').removeAttribute(\'href\');},1); return true;">' . __('Activate Purchase', 'options-for-twenty-seventeen') . '</a>';
 
-                } elseif (self::$plugin_trial && !is_plugin_active('options-for-twenty-seventeen' . '-premium/' . 'options-for-twenty-seventeen' . '-premium.php')) {
+                } elseif (self::$plugin_trial && !is_plugin_active($upgrade_product['premium_plugin'])) {
 
 /* translators: name of the plugin */
                     $settings_links[] = '<a href="' . esc_url(self::premium_link()) . '" title="' . esc_attr(sprintf(__('Trial %s Premium', 'options-for-twenty-seventeen'), self::$plugin_name)) . ' for 7 days">' . __('Download Trial', 'options-for-twenty-seventeen') . '</a>';
@@ -344,9 +490,10 @@ if (!class_exists('oftsCommon')) {
 
         public static function plugin_row_meta($plugin_meta, $plugin_file, $plugin_data, $status) {
 
-            if ($plugin_file === 'options-for-twenty-seventeen' . '/' . 'options-for-twenty-seventeen' . '.php') {
+            if ($plugin_file === self::$plugin_text_domain . '/' . self::$plugin_text_domain . '.php') {
 
                 $plugin_meta[] = '<a href="' . esc_url(self::support_url()) . '" title="' . __('Problems? We are here to help!', 'options-for-twenty-seventeen') . '" style="color: orange; font-weight: bold;">' . __('Need help?', 'options-for-twenty-seventeen') . '</a>';
+                $plugin_meta[] = '<a href="' . esc_url(self::services_url()) . '" title="' . esc_attr(__('Other services from Web:D', 'options-for-twenty-seventeen')) . '">' . __('Web:D Services', 'options-for-twenty-seventeen') . '</a>';
 /* translators: name of the plugin */
                 $plugin_meta[] = '<a href="https://wordpress.org/support/plugin/' . 'options-for-twenty-seventeen' . '/reviews/#new-post" title="' . esc_attr(sprintf(__('If you like %s, please leave a review!', 'options-for-twenty-seventeen'), self::$plugin_name)) . '">' . __('Review plugin', 'options-for-twenty-seventeen') . '</a>';
 
@@ -356,17 +503,28 @@ if (!class_exists('oftsCommon')) {
 
         }
 
-        public static function ajax_notice_handler() {
+        public static function ajax_notice_handler($product = false) {
+
+            if ($product) {
+
+                return self::with_upgrade_product($product, array(__CLASS__, 'ajax_notice_handler'));
+
+            }
 
             check_ajax_referer(self::$plugin_prefix . '-ajax-nonce');
 
-            if (is_user_logged_in()) {
+            if (current_user_can('manage_options')) {
 
-                update_user_meta(get_current_user_id(), self::$plugin_prefix . '-notice-dismissed', self::plugin_version());
+                $user_id = get_current_user_id();
 
-                if (isset($_REQUEST['donated']) && $_REQUEST['donated'] == 'true') {
+                update_user_meta($user_id, self::$plugin_prefix . '-notice-dismissed', self::plugin_version());
 
-    				update_option(self::$plugin_prefix . '_donated', true);
+                if (
+                    isset($_REQUEST['donated']) &&
+                    'true' === sanitize_text_field(wp_unslash($_REQUEST['donated']))
+                ) {
+
+                    update_option(self::$plugin_prefix . '_donated', true);
 
                 }
 
@@ -374,7 +532,45 @@ if (!class_exists('oftsCommon')) {
 
         }
 
-        public static function admin_notices() {
+        public static function should_show_admin_notice() {
+
+            if (!current_user_can('manage_options')) {
+
+                return false;
+
+            }
+
+            global $pagenow;
+
+            $allowed_pages = array('index.php', 'plugins.php');
+
+            /**
+             * Filters the admin pages where plugin notices may be shown.
+             *
+             * The dynamic portion of the hook name is the plugin prefix.
+             *
+             * @param array $allowed_pages List of allowed admin page filenames.
+             */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
+            $allowed_pages = apply_filters(self::$plugin_prefix . '_admin_notice_pages', $allowed_pages);
+
+            return is_array($allowed_pages) && in_array($pagenow, $allowed_pages, true);
+
+        }
+
+        public static function admin_notices($product = false) {
+
+            if ($product) {
+
+                return self::with_upgrade_product($product, array(__CLASS__, 'admin_notices'));
+
+            }
+
+            if (!self::should_show_admin_notice()) {
+
+                return;
+
+            }
 
             if (self::$plugin_premium_class) {
 
@@ -392,20 +588,23 @@ if (!class_exists('oftsCommon')) {
 <?php esc_html_e('In order to use the premium features, you need to install the premium version of the plugin ...', 'options-for-twenty-seventeen'); ?></p>
 
 <p><a href="<?php
-/* translators: name of the plugin */
-echo esc_url(self::premium_link()); ?>" title="<?php echo esc_attr(sprintf(__('Download %s Premium', 'options-for-twenty-seventeen'), self::$plugin_name)); ?>" class="button-primary"><?php printf(esc_html(__('Download %s Premium', 'options-for-twenty-seventeen')), esc_html(self::$plugin_name)); ?></a></p>
+/* translators: name of the premium plugin */
+echo esc_url(self::premium_link()); ?>" title="<?php echo esc_attr(sprintf(__('Download %s', 'options-for-twenty-seventeen'), self::plugin_premium_name())); ?>" class="button-primary"><?php printf(esc_html(__('Download %s', 'options-for-twenty-seventeen')), esc_html(self::plugin_premium_name())); ?></a></p>
 
 </div>
 
 <script type="text/javascript">
-    jQuery(document).on('click', '.<?php echo esc_attr(self::$plugin_prefix); ?>-notice .notice-dismiss', function() {
-	    jQuery.ajax({
-    	    url: ajaxurl,
-    	    data: {
-        		action: 'dismiss_<?php echo esc_attr(self::$plugin_prefix); ?>_notice_handler',
-        		_ajax_nonce: '<?php echo esc_attr(wp_create_nonce(self::$plugin_prefix . '-ajax-nonce')); ?>'
-    	    }
-    	});
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.<?php echo esc_attr(self::$plugin_prefix); ?>-notice .notice-dismiss')) {
+            return;
+        }
+
+        const params = new URLSearchParams({
+            action: 'dismiss_<?php echo esc_attr(self::$plugin_prefix); ?>_notice_handler',
+            _ajax_nonce: '<?php echo esc_attr(wp_create_nonce(self::$plugin_prefix . '-ajax-nonce')); ?>'
+        });
+
+        fetch(window.ajaxurl + '?' + params.toString(), {credentials: 'same-origin'});
     });
 </script>
 
@@ -454,10 +653,10 @@ printf(esc_html(__('Thank you for using %s plugin', 'options-for-twenty-seventee
 
 ?>
 
-        <a href="<?php echo esc_url(self::premium_link()); ?>" 
+        <a href="<?php echo esc_url(self::premium_link()); ?>"
            title="<?php
 /* translators: name of the plugin */
-echo esc_attr(sprintf(__('Try %s Premium', 'options-for-twenty-seventeen'), self::$plugin_name)); ?>" 
+echo esc_attr(sprintf(__('Try %s Premium', 'options-for-twenty-seventeen'), self::$plugin_name)); ?>"
            class="button-secondary">
            <?php echo esc_html(__('Try premium plugin free for 7 days', 'options-for-twenty-seventeen')); ?>
         </a>
@@ -467,10 +666,10 @@ echo esc_attr(sprintf(__('Try %s Premium', 'options-for-twenty-seventeen'), self
 
 ?>
 
-        <a href="<?php echo esc_url(self::upgrade_link()); ?>" 
+        <a href="<?php echo esc_url(self::upgrade_link()); ?>"
            title="<?php
 /* translators: name of the plugin */
-echo esc_attr(sprintf(__('Upgrade now to %s Premium', 'options-for-twenty-seventeen'), self::$plugin_name)); ?>" 
+echo esc_attr(sprintf(__('Upgrade now to %s Premium', 'options-for-twenty-seventeen'), self::$plugin_name)); ?>"
            class="button-primary">
            <?php echo esc_html(__('Upgrade now to premium plugin', 'options-for-twenty-seventeen')); ?>
         </a>
@@ -488,14 +687,17 @@ echo esc_attr(sprintf(__('Upgrade now to %s Premium', 'options-for-twenty-sevent
 </div>
 
 <script type="text/javascript">
-    jQuery(document).on('click', '.<?php echo esc_attr(self::$plugin_prefix); ?>-notice .notice-dismiss', function() {
-	    jQuery.ajax({
-    	    url: ajaxurl,
-    	    data: {
-        		action: 'dismiss_<?php echo esc_attr(self::$plugin_prefix); ?>_notice_handler',
-        		_ajax_nonce: '<?php echo esc_attr(wp_create_nonce(self::$plugin_prefix . '-ajax-nonce')); ?>'
-    	    }
-    	});
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.<?php echo esc_attr(self::$plugin_prefix); ?>-notice .notice-dismiss')) {
+            return;
+        }
+
+        const params = new URLSearchParams({
+            action: 'dismiss_<?php echo esc_attr(self::$plugin_prefix); ?>_notice_handler',
+            _ajax_nonce: '<?php echo esc_attr(wp_create_nonce(self::$plugin_prefix . '-ajax-nonce')); ?>'
+        });
+
+        fetch(window.ajaxurl + '?' + params.toString(), {credentials: 'same-origin'});
     });
 </script>
 
@@ -527,47 +729,52 @@ printf(esc_html(__('Thank you for using %s plugin', 'options-for-twenty-seventee
 
     <p><a href="<?php echo esc_url(self::upgrade_link()); ?>" title="<?php
 /* translators: name of the plugin */
-echo esc_attr(sprintf(__('Contribute to %s', 'options-for-twenty-seventeen'), self::$plugin_name)); ?>" class="button-primary"><?php echo esc_html(__('Buy us a coffee ☕️', 'options-for-twenty-seventeen')); ?></a> <a href="#" id="<?php echo esc_attr(self::$plugin_prefix); ?>-already-paid" title="<?php echo esc_attr(__('Aleady Contributed!', 'options-for-twenty-seventeen')); ?>" class="button-secondary"><?php esc_html_e('Aleady Contributed!', 'options-for-twenty-seventeen'); ?></a></p>
-
-    <hr style="margin:12px 0;">
-
-    <p>
-        <strong>✨ Need help with your WordPress site?</strong>
-        🚀 Slow, want new features, or need a glow-up?
-        <a href="https://webd.uk/services/?utm_campaign=notice&utm_term=options-for-twenty-seventeen" class="button-secondary" style="margin-left:6px; vertical-align: middle;">Explore our services</a>
-    </p>
+echo esc_attr(sprintf(__('Contribute to %s', 'options-for-twenty-seventeen'), self::$plugin_name)); ?>" class="button-primary"><?php echo esc_html(__('Buy us a coffee ☕️', 'options-for-twenty-seventeen')); ?></a> <a href="#" id="<?php echo esc_attr(self::$plugin_prefix); ?>-already-paid" title="<?php echo esc_attr(__('Already Contributed!', 'options-for-twenty-seventeen')); ?>" class="button-secondary"><?php esc_html_e('Already Contributed!', 'options-for-twenty-seventeen'); ?></a></p>
 
 </div>
 
 <script type="text/javascript">
-    jQuery(document).on('click', '#<?php echo esc_attr(self::$plugin_prefix); ?>-already-paid', function() {
-        if (confirm(<?php echo json_encode(__('Have you really? Press "Cancel" if you forgot to 🙂', 'options-for-twenty-seventeen')); ?>)) {
-            alert(<?php echo json_encode(__('Thank you!', 'options-for-twenty-seventeen')); ?>);
-            jQuery('.<?php echo esc_attr(self::$plugin_prefix); ?>-notice').fadeTo(100, 0, function() {
-                jQuery('.<?php echo esc_attr(self::$plugin_prefix); ?>-notice').slideUp(100, function() {
-                    jQuery('.<?php echo esc_attr(self::$plugin_prefix); ?>-notice').remove()
-                });
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('#<?php echo esc_attr(self::$plugin_prefix); ?>-already-paid')) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (confirm(<?php echo wp_json_encode(__('Have you really? Press "Cancel" if you forgot to 🙂', 'options-for-twenty-seventeen')); ?>)) {
+            alert(<?php echo wp_json_encode(__('Thank you!', 'options-for-twenty-seventeen')); ?>);
+
+            document.querySelectorAll('.<?php echo esc_attr(self::$plugin_prefix); ?>-notice').forEach(function(notice) {
+                notice.style.transition = 'opacity 100ms ease';
+                notice.style.opacity = '0';
+                window.setTimeout(function() {
+                    notice.remove();
+                }, 100);
             });
-            jQuery.ajax({
-            	url: ajaxurl,
-            	data: {
-                	action: 'dismiss_<?php echo esc_attr(self::$plugin_prefix); ?>_notice_handler',
-            	    donated: 'true',
-        		    _ajax_nonce: '<?php echo esc_attr(wp_create_nonce(self::$plugin_prefix . '-ajax-nonce')); ?>'
-            	}
-        	});
+
+            const params = new URLSearchParams({
+                action: 'dismiss_<?php echo esc_attr(self::$plugin_prefix); ?>_notice_handler',
+                donated: 'true',
+                _ajax_nonce: '<?php echo esc_attr(wp_create_nonce(self::$plugin_prefix . '-ajax-nonce')); ?>'
+            });
+
+            fetch(window.ajaxurl + '?' + params.toString(), {credentials: 'same-origin'});
         } else {
             window.location.assign('<?php echo esc_url(self::upgrade_link()); ?>');
         }
     });
-    jQuery(document).on('click', '.<?php echo esc_attr(self::$plugin_prefix); ?>-notice .notice-dismiss', function() {
-    	jQuery.ajax({
-    	    url: ajaxurl,
-    	    data: {
-        		action: 'dismiss_<?php echo esc_attr(self::$plugin_prefix); ?>_notice_handler',
-        		_ajax_nonce: '<?php echo esc_attr(wp_create_nonce(self::$plugin_prefix . '-ajax-nonce')); ?>'
-    	    }
-	    });
+
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.<?php echo esc_attr(self::$plugin_prefix); ?>-notice .notice-dismiss')) {
+            return;
+        }
+
+        const params = new URLSearchParams({
+            action: 'dismiss_<?php echo esc_attr(self::$plugin_prefix); ?>_notice_handler',
+            _ajax_nonce: '<?php echo esc_attr(wp_create_nonce(self::$plugin_prefix . '-ajax-nonce')); ?>'
+        });
+
+        fetch(window.ajaxurl + '?' + params.toString(), {credentials: 'same-origin'});
     });
 </script>
 
@@ -595,14 +802,14 @@ echo esc_attr(sprintf(__('Contribute to %s', 'options-for-twenty-seventeen'), se
 
             // Make sure a different theme is not being live previewed ...
             if (
-                in_array(get_template(), $themes, true) && 
+                in_array(get_template(), $themes, true) &&
                 !(
-                    is_admin() && 
+                    is_admin() &&
                     $pagenow === 'customize.php' &&
                     isset($_GET['theme']) && // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                     !in_array($_GET['theme'], $themes, true) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                 ) && !(
-                    !is_admin() && 
+                    !is_admin() &&
                     $pagenow === 'index.php' &&
                     isset($_GET['customize_theme']) && // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                     isset($_GET['customize_changeset_uuid']) && // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -616,14 +823,14 @@ echo esc_attr(sprintf(__('Contribute to %s', 'options-for-twenty-seventeen'), se
 
             // Is an allowed theme being live previewed ... ?
             if (
-                !in_array(get_template(), $themes, true) && 
+                !in_array(get_template(), $themes, true) &&
                 ((
-                    is_admin() && 
+                    is_admin() &&
                     $pagenow === 'customize.php' &&
                     isset($_GET['theme']) && // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                     in_array($_GET['theme'], $themes, true) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                 ) || (
-                    !is_admin() && 
+                    !is_admin() &&
                     $pagenow === 'index.php' &&
                     isset($_GET['customize_theme']) && // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                     isset($_GET['customize_changeset_uuid']) && // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -637,11 +844,11 @@ echo esc_attr(sprintf(__('Contribute to %s', 'options-for-twenty-seventeen'), se
 
             // Is this a child of an allowed theme ... ?
             if (
-                    !is_admin() && 
+                    !is_admin() &&
                     $pagenow === 'index.php' &&
                     isset($_GET['customize_theme']) && // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                     isset($_GET['customize_changeset_uuid']) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-                
+
             ) {
 
                 $child = wp_get_theme(sanitize_file_name(wp_unslash($_GET['customize_theme']))); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -656,7 +863,7 @@ echo esc_attr(sprintf(__('Contribute to %s', 'options-for-twenty-seventeen'), se
 
             // Is a child of an allowed theme being live previewed ... ?
             if (
-                is_admin() && 
+                is_admin() &&
                 ($pagenow === 'customize.php' || $pagenow === 'admin-ajax.php') &&
                 (
                     isset($_GET['theme']) || // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -759,5 +966,3 @@ if (!function_exists('webd_customize_register')) {
 	}
 
 }
-	
-?>

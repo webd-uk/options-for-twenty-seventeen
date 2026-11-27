@@ -11,19 +11,15 @@
  * Text Domain: options-for-twenty-seventeen
  */
 
-
-
 if (!defined('ABSPATH')) {
     exit('This isn\'t the page you\'re looking for. Move along, move along.');
 }
-
-
 
 if (!class_exists('options_for_twenty_seventeen_class')) {
 
 	class options_for_twenty_seventeen_class {
 
-        public static $version = '2.5.7';
+        const VERSION = '2.5.7';
 
 		function __construct() {
 
@@ -3254,5 +3250,3 @@ jQuery(document).ready(function() {
     }
 
 }
-
-?>
