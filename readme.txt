@@ -2,9 +2,9 @@
 Contributors: domainsupport
 Donate link: https://webd.uk/product/options-for-twenty-seventeen-upgrade/
 Tags: twenty-seventeen, twentyseventeen, change, customize, modify
-Requires at least: 4.6
+Requires at least: 4.7
 Tested up to: 7.2
-Requires PHP: 5.6
+Requires PHP: 7.0
 Stable tag: 2.5.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
